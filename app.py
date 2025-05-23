@@ -7,7 +7,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, ExtraTreesRegressor
+from sklearn.svm import SVR
 from sklearn.metrics import mean_absolute_error, median_absolute_error, explained_variance_score
 
 # Configuração da página
@@ -42,7 +43,6 @@ ordinal = ['classif_bairro', 'classif_casa']
 binary = ['casa_predio', 'energ_solar', 'mov_planejados']
 
 # Pré-processamento e modelos
-from sklearn.compose import ColumnTransformer
 preprocessor = ColumnTransformer([
     ('num', StandardScaler(), numeric),
     ('ord', StandardScaler(), ordinal),
@@ -51,7 +51,9 @@ preprocessor = ColumnTransformer([
 models = [
     ('Linear', LinearRegression(), {}),
     ('RF', RandomForestRegressor(random_state=42), {'model__n_estimators': [100,200], 'model__max_depth':[None,10]}),
-    ('GB', GradientBoostingRegressor(random_state=42), {'model__n_estimators':[100,200], 'model__learning_rate':[0.05,0.1]})
+    ('GB', GradientBoostingRegressor(random_state=42), {'model__n_estimators':[100,200], 'model__learning_rate':[0.05,0.1]}),
+    ('ET', ExtraTreesRegressor(random_state=42), {'model__n_estimators':[100,200], 'model__max_depth':[None,10]}),
+    ('SVR', SVR(), {'model__C':[0.1,1,10], 'model__kernel':['rbf','linear']})
 ]
 
 @st.cache_resource
@@ -76,7 +78,7 @@ def train_model(X, y):
 
 model = train_model(X, y)
 
-# Avaliar métricas adicionais com CV
+# Avaliação das métricas via CV
 cv = KFold(5, shuffle=True, random_state=42)
 rmse = np.sqrt(-cross_val_score(model, X, y, scoring='neg_mean_squared_error', cv=cv))
 mae = -cross_val_score(model, X, y, scoring='neg_mean_absolute_error', cv=cv)
@@ -87,15 +89,15 @@ ev = cross_val_score(model, X, y, scoring='explained_variance', cv=cv)
 st.markdown("""
 <div style='text-align:center;'>
     <h1>🏠 Previsão de Preço de Casas</h1>
-    <p style='color: #555;'>Utilize as ferramentas abaixo para estimar o valor de mercado.</p>
+    <p style='color: #555;'>Estimativa de valor baseada em múltiplos modelos de regressão.</p>
 </div>
 """, unsafe_allow_html=True)
 st.markdown('---')
 
 # Layout em colunas
-top, mid, bot = st.columns((1,2,1))
+_, mid, _ = st.columns((1,2,1))
 
-# Card de métricas
+# Card de métricas e explicações
 with mid:
     st.markdown(f"""
     <div class='card'>
@@ -104,10 +106,16 @@ with mid:
         <p><b>MAE:</b> {mae.mean():.2f} ± {mae.std():.2f}</p>
         <p><b>MedAE:</b> {medae.mean():.2f} ± {medae.std():.2f}</p>
         <p><b>Explained Var:</b> {ev.mean():.2f} ± {ev.std():.2f}</p>
+        <hr>
+        <h4>O que significam essas métricas?</h4>
+        <p><b>RMSE</b> penaliza erros grandes, representando o desvio médio das previsões em R$.</p>
+        <p><b>MAE</b> é o erro médio absoluto, menos sensível a outliers.</p>
+        <p><b>MedAE</b> mostra a mediana dos erros absolutos, robusta a valores extremos.</p>
+        <p><b>Explained Var</b> indica a porcentagem de variação nos preços que o modelo explica.</p>
     </div>
     """, unsafe_allow_html=True)
 
-# Entrada de dados do usuário
+# Seção de inputs
 st.markdown('<div class="card">', unsafe_allow_html=True)
 st.subheader('Características da Casa')
 inputs = {}

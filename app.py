@@ -8,7 +8,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error, median_absolute_error, explained_variance_score
 
 # Configuração da página
 st.set_page_config(page_title='Previsão de Preço de Casas', layout='wide')
@@ -20,9 +20,8 @@ body {background-color: #FAFAFA;}
 .stApp {font-family: 'Arial', sans-serif;}
 h1 {color: #e74c3c;}
 .stButton>button {background-color: #e74c3c; border-radius: 8px; color: white !important; padding: 0.6em 1.4em;}
-.stSelectbox>div, .stNumberInput>div > input {border: 2px solid #f39c12 !important; border-radius: 4px;}
-.stDivider {margin: 2rem 0;}
-.card {background-color: white; border: 1px solid #ddd; border-radius: 8px; padding: 1em; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
+.stSelectbox>div, .stNumberInput>div > input, .stSlider>div {border: 2px solid #f39c12 !important; border-radius: 4px;}
+.card {background-color: white; border: 1px solid #ddd; border-radius: 8px; padding: 1em; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 1.5em;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -43,6 +42,7 @@ ordinal = ['classif_bairro', 'classif_casa']
 binary = ['casa_predio', 'energ_solar', 'mov_planejados']
 
 # Pré-processamento e modelos
+from sklearn.compose import ColumnTransformer
 preprocessor = ColumnTransformer([
     ('num', StandardScaler(), numeric),
     ('ord', StandardScaler(), ordinal),
@@ -76,10 +76,12 @@ def train_model(X, y):
 
 model = train_model(X, y)
 
-# Avaliar métricas
+# Avaliar métricas adicionais com CV
 cv = KFold(5, shuffle=True, random_state=42)
 rmse = np.sqrt(-cross_val_score(model, X, y, scoring='neg_mean_squared_error', cv=cv))
-r2 = cross_val_score(model, X, y, scoring='r2', cv=cv)
+mae = -cross_val_score(model, X, y, scoring='neg_mean_absolute_error', cv=cv)
+medae = -cross_val_score(model, X, y, scoring='neg_median_absolute_error', cv=cv)
+ev = cross_val_score(model, X, y, scoring='explained_variance', cv=cv)
 
 # Cabeçalho
 st.markdown("""
@@ -90,29 +92,30 @@ st.markdown("""
 """, unsafe_allow_html=True)
 st.markdown('---')
 
-# Layout em três colunas
-col1, col2, col3 = st.columns((3,4,3))
+# Layout em colunas
+top, mid, bot = st.columns((1,2,1))
 
 # Card de métricas
-with col2:
-    st.markdown("""
+with mid:
+    st.markdown(f"""
     <div class='card'>
-        <h3>📊 Desempenho do Modelo</h3>
-        <p><b>Modelo:</b> {}</p>
-        <p><b>RMSE (média):</b> {:.2f}</p>
-        <p><b>R² (média):</b> {:.2f}</p>
+        <h3>📊 Desempenho do Modelo ({model.named_steps['model'].__class__.__name__})</h3>
+        <p><b>RMSE:</b> {rmse.mean():.2f} ± {rmse.std():.2f}</p>
+        <p><b>MAE:</b> {mae.mean():.2f} ± {mae.std():.2f}</p>
+        <p><b>MedAE:</b> {medae.mean():.2f} ± {medae.std():.2f}</p>
+        <p><b>Explained Var:</b> {ev.mean():.2f} ± {ev.std():.2f}</p>
     </div>
-    """.format(model.named_steps['model'].__class__.__name__, rmse.mean(), r2.mean()), unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 # Entrada de dados do usuário
 st.markdown('<div class="card">', unsafe_allow_html=True)
 st.subheader('Características da Casa')
 inputs = {}
 inputs['classif_bairro'] = st.selectbox('Bairro (0-5)', list(range(6)), 3)
-inputs['area_terreno'] = st.slider('Área do Terreno (m²)', 0.0, float(df['area_terreno'].max()), float(df['area_terreno'].mean()))
-inputs['area_construida'] = st.slider('Área Construída (m²)', 0.0, float(df['area_construida'].max()), float(df['area_construida'].mean()))
-inputs['quartos'] = st.slider('Quartos', 0, int(df['quartos'].max()), int(df['quartos'].median()))
-inputs['banheiros'] = st.slider('Banheiros', 0, int(df['banheiros'].max()), int(df['banheiros'].median()))
+inputs['area_terreno'] = st.number_input('Área do Terreno (m²)', min_value=0.0, value=float(df['area_terreno'].mean()), step=1.0)
+inputs['area_construida'] = st.number_input('Área Construída (m²)', min_value=0.0, value=float(df['area_construida'].mean()), step=1.0)
+inputs['quartos'] = st.number_input('Quartos', min_value=0, max_value=int(df['quartos'].max()), value=int(df['quartos'].median()), step=1)
+inputs['banheiros'] = st.number_input('Banheiros', min_value=0, max_value=int(df['banheiros'].max()), value=int(df['banheiros'].median()), step=1)
 inputs['classif_casa'] = st.selectbox('Condição (0-5)', list(range(6)), 3)
 inputs['casa_predio'] = st.radio('Tipo de Imóvel', ('Casa','Prédio'))
 inputs['energ_solar'] = st.checkbox('Energia Solar')

@@ -90,22 +90,22 @@ st.markdown("""
 st.title('Previsão de Preço de Casas')
 st.markdown('Preencha as características abaixo para obter a previsão de preço.')
 
-with st.sidebar:
-    st.header('Características')
-    classif_bairro = st.selectbox('Classificação do Bairro', options=list(range(0,6)), index=3)
-    area_terreno = st.number_input('Área do Terreno (m²)', min_value=0.0,
-                                   value=float(df['area_terreno'].mean()), step=1.0)
-    area_construida = st.number_input('Área Construída (m²)', min_value=0.0,
-                                      value=float(df['area_construida'].mean()), step=1.0)
-    quartos = st.number_input('Quartos', min_value=0, max_value=10,
-                              value=int(df['quartos'].median()), step=1)
-    banheiros = st.number_input('Banheiros', min_value=0, max_value=10,
-                                value=int(df['banheiros'].median()), step=1)
-    classif_casa = st.selectbox('Classificação da Casa', options=list(range(0,6)), index=3)
-    casa_predio = st.selectbox('Tipo de Imóvel', options={0: 'Casa', 1: 'Prédio'})
-    energ_solar = st.selectbox('Energia Solar', options={0: 'Não', 1: 'Sim'})
-    mov_planejados = st.selectbox('Móveis Planejados', options={0: 'Não', 1: 'Sim'})
-    predict_btn = st.button('Prever Preço')
+st.header('Características da Casa')
+classif_bairro = st.selectbox('Classificação do Bairro', options=list(range(0, 6)), index=3)
+area_terreno = st.number_input('Área do Terreno (m²)', min_value=0.0,
+                               value=float(df['area_terreno'].mean()), step=1.0)
+area_construida = st.number_input('Área Construída (m²)', min_value=0.0,
+                                  value=float(df['area_construida'].mean()), step=1.0)
+quartos = st.number_input('Quartos', min_value=0, max_value=10,
+                          value=int(df['quartos'].median()), step=1)
+banheiros = st.number_input('Banheiros', min_value=0, max_value=10,
+                            value=int(df['banheiros'].median()), step=1)
+classif_casa = st.selectbox('Classificação da Casa', options=list(range(0, 6)), index=3)
+casa_predio = st.selectbox('Tipo de Imóvel', options={0: 'Casa', 1: 'Prédio'})
+energ_solar = st.selectbox('Energia Solar', options={0: 'Não', 1: 'Sim'})
+mov_planejados = st.selectbox('Móveis Planejados', options={0: 'Não', 1: 'Sim'})
+
+predict_btn = st.button('Prever Preço')
 
 if predict_btn:
     inp = pd.DataFrame([{
@@ -121,7 +121,6 @@ if predict_btn:
     }])
     pred = model.predict(inp)[0]
     st.subheader(f'Preço Previsto: R$ {pred:,.2f}')
-    # Botão de exportar
     csv = inp.assign(preco_previsto=pred).to_csv(index=False, sep=';')
     st.download_button('Exportar Resultado', data=csv,
                        file_name='previsao_casa.csv', mime='text/csv')

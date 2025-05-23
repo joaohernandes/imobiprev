@@ -12,31 +12,39 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 # Configuração da página
 st.set_page_config(page_title='Previsão de Preço de Casas', layout='centered')
 
+# Upload do arquivo CSV na sidebar
+st.sidebar.title('Upload de Dados')
+uploaded_file = st.sidebar.file_uploader('Selecione o CSV de dados', type=['csv'])
+if not uploaded_file:
+    st.sidebar.warning('Faça upload do arquivo CSV para prosseguir.')
+    st.stop()
+
 # Carregamento e pré-processamento dos dados
-@st.cache_data
-def load_data():
-    df = pd.read_csv('/mnt/data/T1 RODRIGO.csv', sep=';')
+def load_data(file) -> pd.DataFrame:
+    df = pd.read_csv(file, sep=';')
     df['preco'] = pd.to_numeric(df['preco'], errors='coerce')
     df = df.dropna(subset=['preco'])
     return df
 
+# Carregar os dados
+df = load_data(uploaded_file)
 
-df = load_data()
-
+# Separar features e target
 X = df.drop('preco', axis=1)
-y = df['preco']
-
+ y = df['preco']
 # Definição das features
 numeric_features = ['area_terreno', 'area_construida', 'quartos', 'banheiros']
 ordinal_features = ['classif_bairro', 'classif_casa']
 binary_features = ['casa_predio', 'energ_solar', 'mov_planejados']
 
+# Pré-processador
 preprocessor = ColumnTransformer([
     ('num', StandardScaler(), numeric_features),
     ('ord', StandardScaler(), ordinal_features),
     ('bin', 'passthrough', binary_features)
 ])
 
+# Modelos e parâmetros
 models = [
     ('LinearRegression', LinearRegression(), {}),
     ('RandomForest', RandomForestRegressor(random_state=42), {
@@ -50,11 +58,12 @@ models = [
     })
 ]
 
+# Treinamento do melhor modelo (cache para performance)
 @st.cache_resource
-def train_best_model():
+def train_best_model(data_X, data_y):
     best_score = np.inf
     best_model = None
-    for name, model, params in models:
+    for _, model, params in models:
         pipeline = Pipeline([
             ('preprocessor', preprocessor),
             ('model', model)
@@ -67,18 +76,18 @@ def train_best_model():
                 scoring='neg_root_mean_squared_error',
                 n_jobs=-1
             )
-            gs.fit(X, y)
+            gs.fit(data_X, data_y)
             score = -gs.best_score_
             candidate = gs.best_estimator_
         else:
             cv = KFold(n_splits=5, shuffle=True, random_state=42)
             scores = cross_val_score(
-                pipeline, X, y,
+                pipeline, data_X, data_y,
                 scoring='neg_root_mean_squared_error',
                 cv=cv,
                 n_jobs=-1
             )
-            pipeline.fit(X, y)
+            pipeline.fit(data_X, data_y)
             score = -scores.mean()
             candidate = pipeline
         if score < best_score:
@@ -86,7 +95,7 @@ def train_best_model():
             best_model = candidate
     return best_model
 
-model = train_best_model()
+model = train_best_model(X, y)
 
 # Estilo customizado de cores (laranja e vermelho)
 st.markdown("""
@@ -96,7 +105,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Interface do usuário
+# Interface do usuário para predição
 st.sidebar.title('Características da Casa')
 classif_bairro = st.sidebar.slider('Classificação do Bairro', 0, 5, 3)
 area_terreno = st.sidebar.number_input('Área do Terreno (m²)', min_value=0.0, value=float(df['area_terreno'].mean()))
@@ -122,6 +131,7 @@ if st.sidebar.button('Prever Preço'):
     }])
     prediction = model.predict(input_data)[0]
     st.subheader(f'Preço Previsto: R$ {prediction:,.2f}')
+    # Exportar resultado
     result = input_data.copy()
     result['preco_previsto'] = prediction
     csv = result.to_csv(index=False, sep=';')

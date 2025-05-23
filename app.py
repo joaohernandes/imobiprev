@@ -31,7 +31,8 @@ df = load_data(uploaded_file)
 
 # Separar features e target
 X = df.drop('preco', axis=1)
- y = df['preco']
+y = df['preco']
+
 # Definição das features
 numeric_features = ['area_terreno', 'area_construida', 'quartos', 'banheiros']
 ordinal_features = ['classif_bairro', 'classif_casa']
@@ -95,6 +96,7 @@ def train_best_model(data_X, data_y):
             best_model = candidate
     return best_model
 
+# Treinar o modelo
 model = train_best_model(X, y)
 
 # Estilo customizado de cores (laranja e vermelho)

@@ -8,6 +8,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.metrics import mean_squared_error, r2_score
 
 # Configuração da página
 st.set_page_config(page_title='Previsão de Preço de Casas', layout='centered')
@@ -78,6 +79,12 @@ def train_best_model(data_X, data_y):
 
 model = train_best_model(X, y)
 
+# Calcular métricas de validação cruzada
+cv = KFold(n_splits=5, shuffle=True, random_state=42)
+neg_mse = cross_val_score(model, X, y, scoring='neg_mean_squared_error', cv=cv, n_jobs=-1)
+rmse_scores = np.sqrt(-neg_mse)
+r2_scores = cross_val_score(model, X, y, scoring='r2', cv=cv, n_jobs=-1)
+
 # Estilo customizado (laranja e vermelho)
 st.markdown("""
 <style>
@@ -89,6 +96,12 @@ st.markdown("""
 # Interface do usuário
 st.title('Previsão de Preço de Casas')
 st.markdown('Preencha as características abaixo para obter a previsão de preço.')
+
+# Exibir métricas do modelo
+with st.expander('📊 Métricas do Modelo'):
+    st.write(f"**Modelo Selecionado:** {model.named_steps['model'].__class__.__name__}")
+    st.write(f"**RMSE (5-fold CV):** {rmse_scores.mean():.2f} ± {rmse_scores.std():.2f}")
+    st.write(f"**R² (5-fold CV):** {r2_scores.mean():.2f} ± {r2_scores.std():.2f}")
 
 st.header('Características da Casa')
 classif_bairro = st.selectbox('Classificação do Bairro', options=list(range(0, 6)), index=3)

@@ -84,6 +84,7 @@ rmse = np.sqrt(-cross_val_score(model, X, y, scoring='neg_mean_squared_error', c
 mae = -cross_val_score(model, X, y, scoring='neg_mean_absolute_error', cv=cv)
 medae = -cross_val_score(model, X, y, scoring='neg_median_absolute_error', cv=cv)
 ev = cross_val_score(model, X, y, scoring='explained_variance', cv=cv)
+r2 = cross_val_score(model, X, y, scoring='r2', cv=cv)
 
 # Exibir métricas
 st.markdown('---')
@@ -92,6 +93,7 @@ with mid:
     st.markdown(f"""
     <div class='card'>
         <h3>📊 Desempenho: {model_name}</h3>
+        <p><b>R² (Acurácia):</b> {r2.mean():.2f} ± {r2.std():.2f}</p>
         <p><b>RMSE:</b> {rmse.mean():.2f} ± {rmse.std():.2f}</p>
         <p><b>MAE:</b> {mae.mean():.2f} ± {mae.std():.2f}</p>
         <p><b>MedAE:</b> {medae.mean():.2f} ± {medae.std():.2f}</p>
@@ -99,23 +101,11 @@ with mid:
     </div>
     """, unsafe_allow_html=True)
 
-# Inputs do usuário
+# Seção de inputs
 st.markdown('<div class="card">', unsafe_allow_html=True)
 st.subheader('Características da Casa')
 inputs = {}
-inputs['classif_bairro'] = st.selectbox('Bairro (0-5)', list(range(6)), 3)
-inputs['area_terreno'] = st.number_input('Área do Terreno (m²)', min_value=0.0, value=float(df['area_terreno'].mean()), step=1.0)
-inputs['area_construida'] = st.number_input('Área Construída (m²)', min_value=0.0, value=float(df['area_construida'].mean()), step=1.0)
-inputs['quartos'] = st.number_input('Quartos', min_value=0, max_value=int(df['quartos'].max()), value=int(df['quartos'].median()), step=1)
-inputs['banheiros'] = st.number_input('Banheiros', min_value=0, max_value=int(df['banheiros'].max()), value=int(df['banheiros'].median()), step=1)
-inputs['classif_casa'] = st.selectbox('Condição (0-5)', list(range(6)), 3)
-inputs['casa_predio'] = st.radio('Tipo de Imóvel', ('Casa','Prédio'))
-inputs['energ_solar'] = st.checkbox('Energia Solar')
-inputs['mov_planejados'] = st.checkbox('Móveis Planejados')
-predict = st.button('Calcular Preço')
-st.markdown('</div>', unsafe_allow_html=True)
 
-# Predição e resultado
 if predict:
     df_inp = pd.DataFrame([{ 
         'classif_bairro': inputs['classif_bairro'],

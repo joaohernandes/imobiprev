@@ -26,14 +26,14 @@ h1 {color: #e74c3c;}
 </style>
 """, unsafe_allow_html=True)
 
-# Carregar dados
+# Função para carregar dados
+@st.cache_data
 def load_data():
     df = pd.read_csv('T1 RODRIGO.csv', sep=';')
     df['preco'] = pd.to_numeric(df['preco'], errors='coerce')
     return df.dropna(subset=['preco'])
 
-@st.cache_data
-
+# Carregar dataset
 df = load_data()
 X = df.drop('preco', axis=1)
 y = df['preco']
@@ -48,17 +48,17 @@ preprocessor = ColumnTransformer([
     ('bin', 'passthrough', binary)
 ])
 
-# Modelos e grids
+# Modelos e grids de hiperparâmetros
 models = {
     'Linear Regression': (LinearRegression(), {}),
     'Ridge': (Ridge(), {'model__alpha': [0.1, 1, 10]}),
     'Lasso': (Lasso(), {'model__alpha': [0.01, 0.1, 1]}),
-    'KNN': (KNeighborsRegressor(), {'model__n_neighbors': [3,5,7]}),
-    'Random Forest': (RandomForestRegressor(random_state=42), {'model__n_estimators': [100,200], 'model__max_depth': [None,10]}),
-    'Gradient Boosting': (GradientBoostingRegressor(random_state=42), {'model__n_estimators': [100,200], 'model__learning_rate': [0.05,0.1]}),
-    'Extra Trees': (ExtraTreesRegressor(random_state=42), {'model__n_estimators': [100,200], 'model__max_depth': [None,10]}),
-    'AdaBoost': (AdaBoostRegressor(random_state=42), {'model__n_estimators': [50,100]}),
-    'SVR': (SVR(), {'model__C': [0.1,1,10], 'model__kernel': ['rbf','linear']})
+    'KNN': (KNeighborsRegressor(), {'model__n_neighbors': [3, 5, 7]}),
+    'Random Forest': (RandomForestRegressor(random_state=42), {'model__n_estimators': [100, 200], 'model__max_depth': [None, 10]}),
+    'Gradient Boosting': (GradientBoostingRegressor(random_state=42), {'model__n_estimators': [100, 200], 'model__learning_rate': [0.05, 0.1]}),
+    'Extra Trees': (ExtraTreesRegressor(random_state=42), {'model__n_estimators': [100, 200], 'model__max_depth': [None, 10]}),
+    'AdaBoost': (AdaBoostRegressor(random_state=42), {'model__n_estimators': [50, 100]}),
+    'SVR': (SVR(), {'model__C': [0.1, 1, 10], 'model__kernel': ['rbf', 'linear']})
 }
 
 # Treinar todos os modelos
@@ -93,13 +93,16 @@ metrics = {
 
 # Mostrar métricas
 st.markdown('---')
-_, mid, _ = st.columns((1,2,1))
+_, mid, _ = st.columns((1, 2, 1))
 with mid:
-    st.markdown(f"<div class='card'><h3>📊 Desempenho: {model_name}</h3>
-    <p><b>R²:</b> {metrics['R²'].mean():.2f} ± {metrics['R²'].std():.2f}</p>
-    <p><b>RMSE:</b> {metrics['RMSE'].mean():.2f} ± {metrics['RMSE'].std():.2f}</p>
-    <p><b>MAE:</b> {metrics['MAE'].mean():.2f} ± {metrics['MAE'].std():.2f}</p>
-    </div>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class='card'>
+        <h3>📊 Desempenho: {model_name}</h3>
+        <p><b>R²:</b> {metrics['R²'].mean():.2f} ± {metrics['R²'].std():.2f}</p>
+        <p><b>RMSE:</b> {metrics['RMSE'].mean():.2f} ± {metrics['RMSE'].std():.2f}</p>
+        <p><b>MAE:</b> {metrics['MAE'].mean():.2f} ± {metrics['MAE'].std():.2f}</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 # Inputs do usuário
 st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -111,7 +114,7 @@ inputs['area_construida'] = st.number_input('Área Construída (m²)', min_value
 inputs['quartos'] = st.number_input('Quartos', min_value=0, max_value=int(df['quartos'].max()), value=int(df['quartos'].median()), step=1)
 inputs['banheiros'] = st.number_input('Banheiros', min_value=0, max_value=int(df['banheiros'].max()), value=int(df['banheiros'].median()), step=1)
 inputs['classif_casa'] = st.selectbox('Classif. Casa (0-5)', list(range(6)), 3)
-inputs['casa_predio'] = st.radio('Tipo Imóvel', ('Casa','Prédio'))
+inputs['casa_predio'] = st.radio('Tipo Imóvel', ('Casa', 'Prédio'))
 inputs['energ_solar'] = st.checkbox('Energia Solar')
 inputs['mov_planejados'] = st.checkbox('Móveis Planejados')
 predict = st.button('Prever Preço')
@@ -126,7 +129,7 @@ if predict:
         'quartos': inputs['quartos'],
         'banheiros': inputs['banheiros'],
         'classif_casa': inputs['classif_casa'],
-        'casa_predio': 1 if inputs['casa_predio']=='Prédio' else 0,
+        'casa_predio': 1 if inputs['casa_predio'] == 'Prédio' else 0,
         'energ_solar': int(inputs['energ_solar']),
         'mov_planejados': int(inputs['mov_planejados'])
     }])

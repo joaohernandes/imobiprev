@@ -97,7 +97,7 @@ st.markdown('---')
 # Layout em colunas
 _, mid, _ = st.columns((1,2,1))
 
-# Card de métricas e explicações
+# Card de métricas
 with mid:
     st.markdown(f"""
     <div class='card'>
@@ -106,12 +106,6 @@ with mid:
         <p><b>MAE:</b> {mae.mean():.2f} ± {mae.std():.2f}</p>
         <p><b>MedAE:</b> {medae.mean():.2f} ± {medae.std():.2f}</p>
         <p><b>Explained Var:</b> {ev.mean():.2f} ± {ev.std():.2f}</p>
-        <hr>
-        <h4>O que significam essas métricas?</h4>
-        <p><b>RMSE</b> penaliza erros grandes, representando o desvio médio das previsões em R$.</p>
-        <p><b>MAE</b> é o erro médio absoluto, menos sensível a outliers.</p>
-        <p><b>MedAE</b> mostra a mediana dos erros absolutos, robusta a valores extremos.</p>
-        <p><b>Explained Var</b> indica a porcentagem de variação nos preços que o modelo explica.</p>
     </div>
     """, unsafe_allow_html=True)
 
